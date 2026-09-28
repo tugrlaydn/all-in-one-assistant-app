@@ -119,6 +119,38 @@ public actor Vault {
         return changed
     }
 
+    /// Reconciles the index with the folder: new and changed files (by modification date and size)
+    /// are re-read, vanished ones dropped, evicted iCloud files asked to download once. Returns the
+    /// paths whose entry changed; an idle vault costs one directory listing.
+    @discardableResult
+    public func rescan() throws -> Set<String> {
+        let listing = try files.markdownFiles(in: root)
+        var seen = Set<String>()
+        var changed = Set<String>()
+        for info in listing {
+            seen.insert(info.path)
+            if info.isPlaceholder {
+                if requestedDownloads.insert(info.path).inserted { try? files.startDownloading(try url(info.path)) }
+                continue
+            }
+            requestedDownloads.remove(info.path)
+            if let old = index.entry(path: info.path), Self.sameStamp(old, modified: info.modified, size: info.size) { continue }
+            guard let entry = try? readEntry(info.path) else { continue }
+            if index.entry(path: info.path) != entry {
+                index.upsert(entry)
+                changed.insert(info.path)
+            }
+        }
+        for path in index.entries.keys where !seen.contains(path) {
+            index.remove(path: path)
+            changed.insert(path)
+        }
+        if !changed.isEmpty { try writeCache() }
+        return changed
+    }
+
+    private var requestedDownloads = Set<String>()
+
     // MARK: Reading
 
     public func document(at path: String) throws -> MarkdownDocument {
