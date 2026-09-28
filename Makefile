@@ -34,8 +34,9 @@ run: build
 format:
 	swiftformat App AppTests Packages
 
+## vault-dump: read-only index summary of a vault; `make vault-dump VAULT=<folder>`, default the fixture vault
 vault-dump:
-	@echo "vault-dump arrives with vaultctl in P1."; exit 1
+	cd Packages/VaultKit && swift run -q vaultctl "$(abspath $(or $(VAULT),Packages/VaultKit/Tests/Fixtures/Vaults/Basic))"
 
 stress-vault:
 	@echo "stress-vault arrives in P8."; exit 1

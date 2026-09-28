@@ -152,3 +152,20 @@ public struct CoordinatedFileAccess: FileAccess {
         #endif
     }
 }
+
+/// Wraps another `FileAccess` and refuses every write — for inspecting folders (`vaultctl`).
+struct ReadOnlyFileAccess: FileAccess {
+    let base: any FileAccess
+
+    func read(_ url: URL) throws -> Data { try base.read(url) }
+    func write(_ data: Data, to url: URL) throws { throw VaultError.readOnly }
+    func move(from source: URL, to destination: URL) throws { throw VaultError.readOnly }
+    func createDirectory(at url: URL) throws { throw VaultError.readOnly }
+    func fileExists(at url: URL) -> Bool { base.fileExists(at: url) }
+    func isDirectory(at url: URL) -> Bool { base.isDirectory(at: url) }
+    func attributes(of url: URL) -> (modified: Date?, size: Int?) { base.attributes(of: url) }
+    func names(in directory: URL) -> [String] { base.names(in: directory) }
+    func markdownFiles(in root: URL) throws -> [FileInfo] { try base.markdownFiles(in: root) }
+    /// Downloading an evicted iCloud file changes nothing the owner can see, but it is still not ours to ask.
+    func startDownloading(_ url: URL) throws {}
+}

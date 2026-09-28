@@ -11,6 +11,8 @@ public enum VaultError: Error, Equatable, Sendable {
     /// Someone else changed the file since it was read; reload before saving.
     case changedOnDisk(String)
     case alreadyExists(String)
+    /// The vault was opened read-only (`vaultctl`): nothing may be written.
+    case readOnly
 }
 
 /// The result of a save: where the file is now and the item as written.
@@ -34,16 +36,19 @@ public struct LoadReport: Equatable, Sendable {
 /// owner did not change (§8.3).
 public actor Vault {
     public nonisolated let root: URL
+    /// Opened for inspection only: no file, folder or cache is ever written.
+    public nonisolated let isReadOnly: Bool
     let files: any FileAccess
     public private(set) var index = VaultIndex()
 
     /// FORMAT §4.1. Only folders: the owner's vault starts empty, never with sample files (D10, §8.6).
     public static let skeleton = ["Notes", "Tasks", "Habits", "Habits/Weeks", "Attachments", ".persona"]
 
-    public init(root: URL, files: any FileAccess = CoordinatedFileAccess()) throws {
+    public init(root: URL, files: any FileAccess = CoordinatedFileAccess(), readOnly: Bool = false) throws {
         guard files.isDirectory(at: root) else { throw VaultError.notAFolder(root.path) }
         self.root = root.standardizedFileURL
-        self.files = files
+        isReadOnly = readOnly
+        self.files = readOnly ? ReadOnlyFileAccess(base: files) : files
     }
 
     /// Creates the skeleton folders that are missing; returns the ones it created.
@@ -273,6 +278,7 @@ public actor Vault {
 
     /// Writes `.persona/index.json` only when its contents change — no churn for iCloud to sync.
     public func writeCache() throws {
+        guard !isReadOnly else { return }
         let cacheURL = try url(IndexCache.path)
         let data = try IndexCache(index: index).encoded()
         if files.fileExists(at: cacheURL), (try? files.read(cacheURL)) == data { return }

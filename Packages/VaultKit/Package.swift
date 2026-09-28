@@ -7,9 +7,11 @@ let package = Package(
     platforms: [.macOS(.v26)],
     products: [
         .library(name: "VaultKit", targets: ["VaultKit"]),
+        .executable(name: "vaultctl", targets: ["vaultctl"]),
     ],
     targets: [
         .target(name: "VaultKit"),
+        .executableTarget(name: "vaultctl", dependencies: ["VaultKit"]),
         .testTarget(name: "VaultKitTests", dependencies: ["VaultKit"]),
     ]
 )

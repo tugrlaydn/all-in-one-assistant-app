@@ -24,3 +24,5 @@ jobs:
         run: brew install xcodegen
       - name: Build and test
         run: make gen build test
+      - name: Vault dump of the fixture vault
+        run: make vault-dump
