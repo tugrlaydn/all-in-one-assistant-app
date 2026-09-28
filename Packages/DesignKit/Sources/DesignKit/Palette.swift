@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// Colour tokens (§6 identity 2). Colour encodes *kind*, never decoration.
