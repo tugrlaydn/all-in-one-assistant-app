@@ -70,8 +70,11 @@ public struct WikiLink: Hashable, Sendable, CustomStringConvertible {
 public struct Estimate: Hashable, Comparable, Sendable, CustomStringConvertible {
     public let minutes: Int
 
+    /// 1000 hours: anything longer is a typo, not an estimate (and keeps the arithmetic safe).
+    static let maxMinutes = 60_000
+
     public init?(minutes: Int) {
-        guard minutes > 0 else { return nil }
+        guard (1 ... Self.maxMinutes).contains(minutes) else { return nil }
         self.minutes = minutes
     }
 
@@ -87,8 +90,9 @@ public struct Estimate: Hashable, Comparable, Sendable, CustomStringConvertible 
         for char in lower {
             if char.isASCII, char.isNumber {
                 number.append(char)
-            } else if char == "h" || char == "m", let value = Int(number) {
+            } else if char == "h" || char == "m", let value = Int(number), value <= Self.maxMinutes {
                 total += char == "h" ? value * 60 : value
+                guard total <= Self.maxMinutes else { return nil }
                 number = ""
                 sawUnit = true
             } else {

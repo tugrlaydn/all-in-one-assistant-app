@@ -134,11 +134,32 @@ enum MarkdownSection {
     /// Line indices of the section headed `title` (case-insensitive), excluding the heading line:
     /// up to the next heading of the same or a higher level.
     static func range(titled title: String, in lines: [Line]) -> (heading: Int, body: Range<Int>)? {
-        guard let start = lines.firstIndex(where: { heading($0).map { $0.title.lowercased() == title.lowercased() } ?? false }),
+        let code = codeLines(in: lines)
+        func headingOutsideCode(_ index: Int) -> (level: Int, title: String)? {
+            code.contains(index) ? nil : heading(lines[index])
+        }
+        guard let start = lines.indices.first(where: { headingOutsideCode($0).map { $0.title.lowercased() == title.lowercased() } ?? false }),
               let level = heading(lines[start])?.level
         else { return nil }
-        let end = lines[(start + 1)...].firstIndex { heading($0).map { $0.level <= level } ?? false } ?? lines.count
+        let end = lines.indices.dropFirst(start + 1).first { headingOutsideCode($0).map { $0.level <= level } ?? false } ?? lines.count
         return (start, (start + 1) ..< end)
+    }
+
+    /// Indices of lines inside fenced code blocks (the fences included): not headings, tasks or tables.
+    static func codeLines(in lines: [Line]) -> Set<Int> {
+        var result = Set<Int>()
+        var fence: String?
+        for (index, line) in lines.enumerated() {
+            let trimmed = line.content.trimmingCharacters(in: .whitespaces)
+            if let open = fence {
+                result.insert(index)
+                if trimmed.hasPrefix(open) { fence = nil }
+            } else if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+                fence = String(trimmed.prefix(3))
+                result.insert(index)
+            }
+        }
+        return result
     }
 
     /// Appends `newLines` as a new section at the end of the body, separated by a blank line.

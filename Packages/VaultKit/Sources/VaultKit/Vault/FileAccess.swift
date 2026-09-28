@@ -15,6 +15,10 @@ public protocol FileAccess: Sendable {
     func read(_ url: URL) throws -> Data
     /// Atomic replace.
     func write(_ data: Data, to url: URL) throws
+    /// Compare-and-write in one coordinated access: writes `data` only if the file's bytes are still
+    /// `expected` (`nil`: only if no file exists). Returns false, writing nothing, when they aren't —
+    /// so an edit made elsewhere between reading and writing can never be overwritten.
+    func write(_ data: Data, to url: URL, ifCurrentContentsAre expected: Data?) throws -> Bool
     func move(from source: URL, to destination: URL) throws
     func createDirectory(at url: URL) throws
     func fileExists(at url: URL) -> Bool
@@ -63,6 +67,35 @@ public struct CoordinatedFileAccess: FileAccess {
         #endif
     }
 
+    public func write(_ data: Data, to url: URL, ifCurrentContentsAre expected: Data?) throws -> Bool {
+        #if canImport(Darwin)
+            var result: Result<Bool, Error> = .success(false)
+            var coordinationError: NSError?
+            NSFileCoordinator(filePresenter: nil).coordinate(writingItemAt: url, options: .forReplacing, error: &coordinationError) { url in
+                result = Result { try Self.compareAndWrite(data, to: url, expected: expected) }
+            }
+            if let coordinationError { throw coordinationError }
+            return try result.get()
+        #else
+            return try Self.compareAndWrite(data, to: url, expected: expected)
+        #endif
+    }
+
+    private static func compareAndWrite(_ data: Data, to url: URL, expected: Data?) throws -> Bool {
+        guard let expected else {
+            guard !FileManager.default.fileExists(atPath: url.path) else { return false }
+            do {
+                try data.write(to: url, options: .withoutOverwriting)
+            } catch CocoaError.fileWriteFileExists {
+                return false
+            }
+            return true
+        }
+        guard (try? Data(contentsOf: url)) == expected else { return false }
+        try data.write(to: url, options: .atomic)
+        return true
+    }
+
     public func move(from source: URL, to destination: URL) throws {
         #if canImport(Darwin)
             var result: Result<Void, Error> = .success(())
@@ -105,7 +138,9 @@ public struct CoordinatedFileAccess: FileAccess {
     }
 
     public func names(in directory: URL) -> [String] {
-        (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        // An evicted iCloud file `.X.md.icloud` still owns the name `X.md`.
+        return names.map { $0.hasPrefix(".") && $0.hasSuffix(".icloud") ? String($0.dropFirst().dropLast(".icloud".count)) : $0 }
     }
 
     public func markdownFiles(in root: URL) throws -> [FileInfo] {
@@ -159,6 +194,7 @@ struct ReadOnlyFileAccess: FileAccess {
 
     func read(_ url: URL) throws -> Data { try base.read(url) }
     func write(_ data: Data, to url: URL) throws { throw VaultError.readOnly }
+    func write(_ data: Data, to url: URL, ifCurrentContentsAre expected: Data?) throws -> Bool { throw VaultError.readOnly }
     func move(from source: URL, to destination: URL) throws { throw VaultError.readOnly }
     func createDirectory(at url: URL) throws { throw VaultError.readOnly }
     func fileExists(at url: URL) -> Bool { base.fileExists(at: url) }

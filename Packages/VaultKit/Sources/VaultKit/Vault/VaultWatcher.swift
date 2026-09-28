@@ -12,16 +12,25 @@ public actor VaultWatcher {
     public let interval: Duration
     private var continuation: AsyncStream<Set<String>>.Continuation?
     private var task: Task<Void, Never>?
+    /// Which `start` the current stream belongs to, so an old stream ending can't stop a new one.
+    private var generation = 0
 
     public init(vault: Vault, interval: Duration = .milliseconds(500)) {
         self.vault = vault
         self.interval = interval
     }
 
+    deinit {
+        task?.cancel()
+        continuation?.finish()
+    }
+
     /// Starts watching. Each element is the set of vault-relative paths whose index entry changed.
-    /// Calling `start` again ends the previous stream.
+    /// Calling `start` again ends the previous stream and starts a new one.
     public func start() -> AsyncStream<Set<String>> {
         stop()
+        generation += 1
+        let current = generation
         let (stream, continuation) = AsyncStream<Set<String>>.makeStream(bufferingPolicy: .unbounded)
         self.continuation = continuation
         let vault = vault
@@ -29,14 +38,15 @@ public actor VaultWatcher {
         task = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: interval)
-                guard !Task.isCancelled else { break }
+                // The watcher is gone (released without `stop`): stop polling too.
+                guard !Task.isCancelled, let self else { break }
                 if let changed = try? await vault.rescan(), !changed.isEmpty {
-                    await self?.emit(changed)
+                    await self.emit(changed, generation: current)
                 }
             }
         }
         continuation.onTermination = { [weak self] _ in
-            Task { await self?.stop() }
+            Task { await self?.stop(generation: current) }
         }
         return stream
     }
@@ -44,18 +54,26 @@ public actor VaultWatcher {
     public func stop() {
         task?.cancel()
         task = nil
-        continuation?.finish()
+        let ending = continuation
         continuation = nil
+        ending?.finish()
+    }
+
+    /// Stops only if `generation` is still the current stream (an old stream's termination is ignored).
+    private func stop(generation: Int) {
+        guard generation == self.generation else { return }
+        stop()
     }
 
     /// Paths an event source saw change (vault-relative). Refreshed now, without waiting for a tick.
     public func nudge(_ paths: Set<String>) async {
         if let changed = try? await vault.refresh(paths), !changed.isEmpty {
-            emit(changed)
+            emit(changed, generation: generation)
         }
     }
 
-    private func emit(_ changed: Set<String>) {
+    private func emit(_ changed: Set<String>, generation: Int) {
+        guard generation == self.generation else { return }
         continuation?.yield(changed)
     }
 }

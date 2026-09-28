@@ -13,6 +13,8 @@ public enum VaultError: Error, Equatable, Sendable {
     case alreadyExists(String)
     /// The vault was opened read-only (`vaultctl`): nothing may be written.
     case readOnly
+    /// `load()` must run before creating items, so a duplicate id can be detected.
+    case notLoaded
 }
 
 /// The result of a save: where the file is now and the item as written.
@@ -94,6 +96,7 @@ public actor Vault {
             }
         }
         index = newIndex
+        isLoaded = true
         report.indexed = newIndex.count
         try writeCache()
         return report
@@ -104,7 +107,7 @@ public actor Vault {
     @discardableResult
     public func refresh(_ paths: Set<String>) throws -> Set<String> {
         var changed = Set<String>()
-        for path in paths where path.lowercased().hasSuffix(".md") {
+        for path in paths where Self.isIndexable(path) {
             let fileURL = try url(path)
             guard files.fileExists(at: fileURL) else {
                 if index.entry(path: path) != nil {
@@ -150,11 +153,18 @@ public actor Vault {
             index.remove(path: path)
             changed.insert(path)
         }
-        if !changed.isEmpty { try writeCache() }
+        // No cache write here: rescan runs on the watcher's tick, and nothing is written on a timer
+        // (§8.3). The next load reconciles a stale cache by date and size anyway.
         return changed
     }
 
     private var requestedDownloads = Set<String>()
+    private var isLoaded = false
+
+    /// What the folder scan indexes: `.md` files outside dot-folders, not dot-files.
+    static func isIndexable(_ path: String) -> Bool {
+        path.lowercased().hasSuffix(".md") && !path.split(separator: "/").contains { $0.hasPrefix(".") }
+    }
 
     // MARK: Reading
 
@@ -186,7 +196,8 @@ public actor Vault {
     @discardableResult
     public func save<T: VaultItem>(_ item: T, at path: String?, now: Timestamp = .now()) throws -> Saved<T> {
         guard let path else {
-            // A second file with the same id would split the item in two.
+            // A second file with the same id would split the item in two — which only the index can tell.
+            guard isLoaded else { throw VaultError.notLoaded }
             if let existing = index.entry(id: item.id) { throw VaultError.alreadyExists(existing.path) }
             let created = try create(item.document, kind: T.kind, title: item.title)
             return Saved(path: created, item: T(document: item.document)!)
@@ -194,9 +205,8 @@ public actor Vault {
 
         let fileURL = try url(path)
         guard files.fileExists(at: fileURL) else { throw VaultError.notFound(path) }
-        let onDisk = try files.read(fileURL)
-        if onDisk == item.document.data { return Saved(path: path, item: T(document: item.document)!) }
-        guard let loaded = item.loadedDocument, loaded.data == onDisk else { throw VaultError.changedOnDisk(path) }
+        if try files.read(fileURL) == item.document.data { return Saved(path: path, item: T(document: item.document)!) }
+        guard let loaded = item.loadedDocument else { throw VaultError.changedOnDisk(path) }
 
         var document = item.document
         if T.kind == .note || T.kind == .task {
@@ -204,16 +214,22 @@ public actor Vault {
             frontMatter.set("updated", .scalar(now.description), as: .literal)
             document.frontMatter = frontMatter
         }
+        // Compare and write in one coordinated access: an edit made elsewhere since loading wins.
+        guard try files.write(document.data, to: fileURL, ifCurrentContentsAre: loaded.data) else {
+            throw VaultError.changedOnDisk(path)
+        }
 
+        // Rename only when the title itself changed — a file the owner named differently keeps its name.
         var target = path
         let fileName = String(path.split(separator: "/").last ?? "")
-        if T.kind != .habitWeek, !item.title.isEmpty, !FileName.matches(fileName, title: item.title) {
+        let loadedTitle = T(document: loaded)?.title
+        if T.kind != .habitWeek, !item.title.isEmpty, item.title != loadedTitle, !FileName.matches(fileName, title: item.title) {
             let folder = String(path.dropLast(fileName.count))
             let taken = Set(files.names(in: try url(folder.isEmpty ? "." : folder))).subtracting([fileName])
-            target = folder + FileName.available(for: item.title, taken: taken)
-            try files.move(from: fileURL, to: try url(target))
+            let renamed = folder + FileName.available(for: item.title, taken: taken)
+            // A failed rename leaves the saved file under its old name — nothing is lost.
+            if (try? files.move(from: fileURL, to: try url(renamed))) != nil { target = renamed }
         }
-        try files.write(document.data, to: try url(target))
         index.remove(path: path)
         index.upsert(try readEntry(target))
         try writeCache()
@@ -225,16 +241,12 @@ public actor Vault {
     public func save(_ categories: HabitCategories) throws -> HabitCategories {
         let path = "Habits/" + HabitCategories.fileName
         let fileURL = try url(path)
-        if files.fileExists(at: fileURL) {
-            let onDisk = try files.read(fileURL)
-            if onDisk != categories.document.data {
-                guard let loaded = categories.loadedDocument, loaded.data == onDisk else { throw VaultError.changedOnDisk(path) }
-                try files.write(categories.document.data, to: fileURL)
-            }
-        } else {
-            guard categories.loadedDocument == nil else { throw VaultError.changedOnDisk(path) } // it was deleted
-            try files.createDirectory(at: try url("Habits"))
-            try files.write(categories.document.data, to: fileURL)
+        let exists = files.fileExists(at: fileURL)
+        if exists, try files.read(fileURL) == categories.document.data { return HabitCategories(document: categories.document)! }
+        if !exists { try files.createDirectory(at: try url("Habits")) }
+        // nil loadedDocument = a new file: only written if none exists.
+        guard try files.write(categories.document.data, to: fileURL, ifCurrentContentsAre: categories.loadedDocument?.data) else {
+            throw VaultError.changedOnDisk(path)
         }
         index.upsert(try readEntry(path))
         try writeCache()
@@ -244,15 +256,14 @@ public actor Vault {
     private func create(_ document: MarkdownDocument, kind: ItemKind, title: String) throws -> String {
         let folder = Self.folder(for: kind)
         try files.createDirectory(at: try url(folder))
-        let name: String
-        if kind == .habitWeek {
-            name = title + ".md"
-            guard !files.fileExists(at: try url(folder + "/" + name)) else { throw VaultError.alreadyExists(folder + "/" + name) }
-        } else {
-            name = FileName.available(for: title, taken: Set(files.names(in: try url(folder))))
-        }
+        let name = kind == .habitWeek
+            ? title + ".md"
+            : FileName.available(for: title, taken: Set(files.names(in: try url(folder))))
         let path = folder + "/" + name
-        try files.write(document.data, to: try url(path))
+        // Never over an existing file, even one that appeared a moment ago.
+        guard try files.write(document.data, to: try url(path), ifCurrentContentsAre: nil) else {
+            throw VaultError.alreadyExists(path)
+        }
         index.upsert(try readEntry(path))
         try writeCache()
         return path

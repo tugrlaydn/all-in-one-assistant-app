@@ -56,7 +56,12 @@ struct QuickInputParserTests {
         .init(input: "t Pay rent @+0d", title: "Pay rent", scheduled: "2026-09-30"),
         .init(input: "t Pay rent @due:fri", title: "Pay rent", due: "2026-10-02"),
         .init(input: "t Pay rent @due:2026-12-01 @mon", title: "Pay rent", scheduled: "2026-10-05", due: "2026-12-01"),
-        .init(input: "t Multiple @mon @tue", title: "Multiple", scheduled: "2026-10-06"),
+        .init(input: "t Multiple @mon @tue", title: "Multiple @tue", scheduled: "2026-10-05"),
+        .init(input: "t Twice !1 !2 ~1h ~2h @due:fri @due:mon", title: "Twice !2 ~2h @due:mon", due: "2026-10-02", priority: 1, estimate: 60),
+        .init(input: "t Far @+36600d", title: "Far", scheduled: "2126-12-15"),
+        .init(input: "t Overflow @+9223372036854000000d ~153722867280912931h", title: "Overflow @+9223372036854000000d ~153722867280912931h"),
+        .init(input: "t Too long @+9999999d ~1001h", title: "Too long @+9999999d ~1001h"),
+        .init(input: "h swim 999999999999999h", kind: .habitLog, title: "swim 999999999999999h"),
         .init(input: "t @tom first", title: "first", scheduled: "2026-10-01"),
         // Never eat unknown text
         .init(input: "t Email @home about it", title: "Email @home about it"),

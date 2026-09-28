@@ -6,7 +6,8 @@ import Foundation
 public struct VaultIndex: Sendable, Equatable {
     public private(set) var entries: [String: IndexEntry] = [:]
 
-    private var byID: [ULID: String] = [:]
+    /// Normally one path per id; iCloud conflict copies ("X 2.md") can share one.
+    private var byID: [ULID: Set<String>] = [:]
     private var byTitle: [String: Set<String>] = [:]
     private var byTag: [String: Set<String>] = [:]
     /// Link-target key → paths linking to it (including `parent:`).
@@ -25,7 +26,7 @@ public struct VaultIndex: Sendable, Equatable {
     public mutating func upsert(_ entry: IndexEntry) {
         remove(path: entry.path)
         entries[entry.path] = entry
-        if let id = entry.id { byID[id] = entry.path }
+        if let id = entry.id { byID[id, default: []].insert(entry.path) }
         byTitle[entry.titleKey, default: []].insert(entry.path)
         for tag in entry.tags { byTag[tag.lowercased(), default: []].insert(entry.path) }
         for target in Self.linkKeys(of: entry) { linksTo[target, default: []].insert(entry.path) }
@@ -34,7 +35,7 @@ public struct VaultIndex: Sendable, Equatable {
 
     public mutating func remove(path: String) {
         guard let old = entries.removeValue(forKey: path) else { return }
-        if let id = old.id, byID[id] == path { byID[id] = nil }
+        if let id = old.id { Self.drop(path, from: id, in: &byID) }
         Self.drop(path, from: old.titleKey, in: &byTitle)
         for tag in old.tags { Self.drop(path, from: tag.lowercased(), in: &byTag) }
         for target in Self.linkKeys(of: old) { Self.drop(path, from: target, in: &linksTo) }
@@ -62,8 +63,14 @@ public struct VaultIndex: Sendable, Equatable {
         entries[path]
     }
 
+    /// With duplicates, the shortest path (the original, not "X 2.md"), then alphabetical.
     public func entry(id: ULID) -> IndexEntry? {
-        byID[id].flatMap { entries[$0] }
+        byID[id]?.min { ($0.count, $0) < ($1.count, $1) }.flatMap { entries[$0] }
+    }
+
+    /// Every file carrying `id` — more than one means a conflict copy the owner should resolve.
+    public func entries(id: ULID) -> [IndexEntry] {
+        sorted(byID[id])
     }
 
     /// Case-insensitive; several files can share a title (in different folders). Sorted by path.

@@ -154,7 +154,10 @@ public struct TaskItem: VaultItem, DocumentBacked {
     /// Checklist lines inside the `## Subtasks` section, with their body line index.
     static func checklist(in lines: [Line]) -> [(line: Int, item: ChecklistLine)] {
         guard let section = MarkdownSection.range(titled: subtasksHeading, in: lines) else { return [] }
-        return section.body.compactMap { index in ChecklistLine(lines[index]).map { (index, $0) } }
+        let code = MarkdownSection.codeLines(in: lines)
+        return section.body.compactMap { index in
+            code.contains(index) ? nil : ChecklistLine(lines[index]).map { (index, $0) }
+        }
     }
 }
 

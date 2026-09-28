@@ -168,9 +168,11 @@ public struct HabitWeek: VaultItem, DocumentBacked {
 
     /// Appends a row after the last row of the log table, creating the section or table if needed.
     public mutating func appendLog(day: Day, habit: WikiLink, minutes: Int, note: String = "") {
-        let row = HabitLogEntry.row([day.description, habit.description, String(minutes), note])
+        let values = ["date": day.description, "habit": habit.description, "minutes": String(minutes), "note": note]
         editBody { lines, ending in
-            let rowLine = Line(content: row, ending: ending)
+            // Follow the table's own column order; columns the app doesn't know stay empty.
+            let columns = Self.logTable(in: lines)?.columns ?? Self.columns
+            let rowLine = Line(content: HabitLogEntry.row(columns.map { values[$0] ?? "" }), ending: ending)
             let header = [
                 Line(content: HabitLogEntry.row(Self.columns), ending: ending),
                 Line(content: "|---|---|---|---|", ending: ending),
@@ -195,7 +197,8 @@ public struct HabitWeek: VaultItem, DocumentBacked {
     /// The log table: its column names (lowercased), separator line and data-row line indices.
     static func logTable(in lines: [Line]) -> (columns: [String], separator: Int, rows: [Int])? {
         guard let section = MarkdownSection.range(titled: logHeading, in: lines) else { return nil }
-        let tableLines = section.body.filter { lines[$0].content.trimmingCharacters(in: .whitespaces).hasPrefix("|") }
+        let code = MarkdownSection.codeLines(in: lines)
+        let tableLines = section.body.filter { !code.contains($0) && lines[$0].content.trimmingCharacters(in: .whitespaces).hasPrefix("|") }
         guard tableLines.count >= 2 else { return nil }
         let separatorCells = HabitLogEntry.cells(lines[tableLines[1]].content)
         guard !separatorCells.isEmpty, separatorCells.allSatisfy({ $0.allSatisfy { "-: ".contains($0) } && $0.contains("-") })

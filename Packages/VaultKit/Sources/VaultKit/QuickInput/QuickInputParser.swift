@@ -116,7 +116,8 @@ public enum QuickInputParser {
     }
 
     /// Returns how many *following* words the token consumed (0 for a one-word token), or nil when
-    /// `word` is plain text for this kind of input — unknown text is never eaten.
+    /// `word` is plain text for this kind of input — unknown text is never eaten. The first date,
+    /// priority, estimate or parent wins; a second one stays in the title rather than vanish.
     static func recognise(
         _ word: Word, following: ArraySlice<Word>, kind: QuickInput.Kind, today: Day, into result: inout QuickInput
     ) -> Int? {
@@ -126,12 +127,12 @@ public enum QuickInputParser {
             result.tokens.append(QuickInputToken(kind: tokenKind, range: word.range, text: text))
         }
 
-        if isTask, text.lowercased().hasPrefix("@due:"), let day = date(String(text.dropFirst(5)), today: today) {
+        if isTask, result.due == nil, text.lowercased().hasPrefix("@due:"), let day = date(String(text.dropFirst(5)), today: today) {
             result.due = day
             token(.due)
             return 0
         }
-        if isTask || kind == .habitLog, text.hasPrefix("@"), let day = date(String(text.dropFirst()), today: today) {
+        if isTask || kind == .habitLog, result.scheduled == nil, text.hasPrefix("@"), let day = date(String(text.dropFirst()), today: today) {
             result.scheduled = day
             token(.scheduled)
             return 0
@@ -144,18 +145,18 @@ public enum QuickInputParser {
                 return 0
             }
         }
-        if isTask, text.count == 2, text.hasPrefix("!"), let value = Int(text.dropFirst()), (1 ... 3).contains(value) {
+        if isTask, result.priority == nil, text.count == 2, text.hasPrefix("!"), let value = Int(text.dropFirst()), (1 ... 3).contains(value) {
             result.priority = value
             token(.priority)
             return 0
         }
-        if isTask, text.hasPrefix("~"), let estimate = Estimate(text.dropFirst()), text.dropFirst().first?.isNumber == true {
+        if isTask, result.estimate == nil, text.hasPrefix("~"), let estimate = Estimate(text.dropFirst()), text.dropFirst().first?.isNumber == true {
             result.estimate = estimate
             token(.estimate)
             return 0
         }
         // `>Parent title` runs to the next token or the end; a lone `>` is just text (`a > b`).
-        if isTask, text.hasPrefix(">"), text.count > 1 {
+        if isTask, result.parent == nil, text.hasPrefix(">"), text.count > 1 {
             var parts = [String(text.dropFirst())]
             var consumed = 0
             var end = word.range.upperBound
@@ -200,7 +201,7 @@ public enum QuickInputParser {
         if let day = Day(lower) {
             return day
         }
-        if lower.hasPrefix("+"), lower.hasSuffix("d"), let count = Int(lower.dropFirst().dropLast()), count >= 0 {
+        if lower.hasPrefix("+"), lower.hasSuffix("d"), let count = Int(lower.dropFirst().dropLast()), (0 ... 36_600).contains(count) {
             return today.adding(days: count)
         }
         return nil

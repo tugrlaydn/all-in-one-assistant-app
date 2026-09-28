@@ -25,4 +25,4 @@ that the Linux path hides — then those tests move to a macOS-only suite.
 
 Also decided with P1: opening the vault **from a security-scoped bookmark** moves to P2, next to the
 vault picker that creates the bookmark; VaultKit takes a folder URL, and the app owns the bookmark
-(macOS sandbox API, so it stays out of the Foundation-only package).
+(security-scoped bookmarks are a macOS-only Foundation option, so they stay out of the portable package).

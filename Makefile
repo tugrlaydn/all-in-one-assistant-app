@@ -36,7 +36,9 @@ format:
 
 ## vault-dump: read-only index summary of a vault; `make vault-dump VAULT=<folder>`, default the fixture vault
 vault-dump:
-	cd Packages/VaultKit && swift run -q vaultctl "$(abspath $(or $(VAULT),Packages/VaultKit/Tests/Fixtures/Vaults/Basic))"
+	@vault="$(or $(VAULT),Packages/VaultKit/Tests/Fixtures/Vaults/Basic)"; \
+	case "$$vault" in /*) ;; *) vault="$(CURDIR)/$$vault" ;; esac; \
+	cd Packages/VaultKit && swift run -q vaultctl "$$vault"
 
 stress-vault:
 	@echo "stress-vault arrives in P8."; exit 1

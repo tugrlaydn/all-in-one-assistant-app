@@ -33,7 +33,13 @@ public struct Day: Hashable, Comparable, Sendable {
         self.init(daysSince1970: Int((local / 86400).rounded(.down)))
     }
 
+    /// 0001-01-01 and 9999-12-31: the range every `Day` stays inside.
+    static let minDays = -719_162
+    static let maxDays = 2_932_896
+
+    /// Clamped to years 1–9999, so no arithmetic on typed input can overflow or leave the format.
     public init(daysSince1970 days: Int) {
+        let days = min(max(days, Self.minDays), Self.maxDays)
         // Howard Hinnant's civil_from_days.
         let z = days + 719_468
         let era = (z >= 0 ? z : z - 146_096) / 146_097
@@ -60,7 +66,8 @@ public struct Day: Hashable, Comparable, Sendable {
     }
 
     public func adding(days: Int) -> Day {
-        Day(daysSince1970: daysSince1970 + days)
+        let (sum, overflow) = daysSince1970.addingReportingOverflow(days)
+        return Day(daysSince1970: overflow ? (days < 0 ? Self.minDays : Self.maxDays) : sum)
     }
 
     public func days(until other: Day) -> Int {
@@ -163,7 +170,8 @@ public struct ISOWeek: Hashable, Comparable, Sendable {
     }
 
     public func adding(weeks: Int) -> ISOWeek {
-        ISOWeek(containing: monday.adding(days: weeks * 7))
+        let (days, overflow) = weeks.multipliedReportingOverflow(by: 7)
+        return ISOWeek(containing: monday.adding(days: overflow ? (weeks < 0 ? Int.min : Int.max) : days))
     }
 
     /// 52 or 53.

@@ -38,7 +38,13 @@ public struct MarkdownDocument: Equatable, Sendable {
     }
 
     public var text: String {
-        byteOrderMark + (frontMatter?.text ?? "") + body
+        guard var frontMatter else { return byteOrderMark + body }
+        // A file that ended right after `---` gets a line break once a body follows it,
+        // or the body would run onto the delimiter line and the front matter would stop parsing.
+        if frontMatter.closing.ending.isEmpty, !body.isEmpty {
+            frontMatter.closing.ending = frontMatter.lineEnding
+        }
+        return byteOrderMark + frontMatter.text + body
     }
 
     /// Reads bytes as UTF-8. Returns nil for anything that is not valid UTF-8: such a file is left alone,
