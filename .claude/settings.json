@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(make gen)",
+      "Bash(make build)",
+      "Bash(make test)",
+      "Bash(make build test)",
+      "Bash(make gen build test)",
+      "Bash(make run)",
+      "Bash(make format)",
+      "Bash(make vault-dump:*)",
+      "Bash(swift test:*)",
+      "Bash(swift build:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(make dist)"
+    ],
+    "deny": [
+      "Edit(docs/SPEC.md)",
+      "Write(docs/SPEC.md)",
+      "Read(~/Library/Mobile Documents/**)",
+      "Edit(~/Library/Mobile Documents/**)",
+      "Write(~/Library/Mobile Documents/**)",
+      "Read(~/Documents/**)",
+      "Edit(~/Documents/**)",
+      "Write(~/Documents/**)",
+      "Read(~/Desktop/**)",
+      "Edit(~/Desktop/**)",
+      "Write(~/Desktop/**)",
+      "Read(~/Downloads/**)",
+      "Edit(~/Downloads/**)",
+      "Write(~/Downloads/**)",
+      "Edit(~/Library/Preferences/**)",
+      "Write(~/Library/Preferences/**)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/guard-paths.py"
+          }
+        ]
+      }
+    ]
+  }
+}

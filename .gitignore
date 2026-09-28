@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Xcode — the project is generated from project.yml (A03)
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.xcresult
+
+# SwiftPM
+.build/
+.swiftpm/
+Package.resolved
+
+# Design scratch (ratified assets are copied into App/Resources)
+Design/renders/*
+!Design/renders/INDEX.md
+
+# Claude Code — per-machine settings and worktrees
+.claude/settings.local.json
+.claude/worktrees/
