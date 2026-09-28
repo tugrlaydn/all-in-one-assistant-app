@@ -9,10 +9,12 @@ public enum HabitCategory: String, Sendable, CaseIterable, Codable {
 public struct Habit: VaultItem, DocumentBacked {
     public static let kind = ItemKind.habit
     public internal(set) var document: MarkdownDocument
+    public internal(set) var loadedDocument: MarkdownDocument?
 
     public init?(document: MarkdownDocument) {
         guard Self.validates(document) else { return nil }
         self.document = document
+        loadedDocument = document
     }
 
     public static func new(
@@ -30,7 +32,7 @@ public struct Habit: VaultItem, DocumentBacked {
         fm.add("active", "true")
         fm.add("default_minutes", defaultMinutes.map(String.init))
         fm.add("created", created.description)
-        return Habit(document: MarkdownDocument(frontMatter: fm.frontMatter, body: ""))!
+        return Habit(unsaved: MarkdownDocument(frontMatter: fm.frontMatter, body: ""))
     }
 
     public var title: String { frontMatter.string("title") ?? "" }
@@ -51,10 +53,12 @@ public struct HabitCategories: Equatable, Sendable, DocumentBacked {
     public static let kind = ItemKind.habitCategories
     public static let fileName = "Categories.md"
     public internal(set) var document: MarkdownDocument
+    public internal(set) var loadedDocument: MarkdownDocument?
 
     public init?(document: MarkdownDocument) {
         guard document.type == Self.kind.rawValue else { return nil }
         self.document = document
+        loadedDocument = document
     }
 
     /// Created only when the owner first sets a budget — never as sample data (§8.6, D10).
@@ -67,7 +71,9 @@ public struct HabitCategories: Equatable, Sendable, DocumentBacked {
             as: .literal
         )
         fm.add("nudge_times", list: nudgeTimes.map(\.description))
-        return HabitCategories(document: MarkdownDocument(frontMatter: fm.frontMatter, body: ""))!
+        var categories = HabitCategories(document: MarkdownDocument(frontMatter: fm.frontMatter, body: ""))!
+        categories.loadedDocument = nil
+        return categories
     }
 
     private var frontMatter: FrontMatter { document.frontMatter ?? FrontMatter() }
@@ -105,10 +111,13 @@ public struct HabitWeek: VaultItem, DocumentBacked {
     static let logHeading = "Log"
     static let columns = ["date", "habit", "minutes", "note"]
 
+    public internal(set) var loadedDocument: MarkdownDocument?
+
     public init?(document: MarkdownDocument) {
         guard Self.validates(document), document.frontMatter?.string("week").flatMap({ ISOWeek($0) }) != nil
         else { return nil }
         self.document = document
+        loadedDocument = document
     }
 
     public static func new(week: ISOWeek, id: ULID = ULID()) -> HabitWeek {
@@ -118,7 +127,7 @@ public struct HabitWeek: VaultItem, DocumentBacked {
         fm.add("week", week.description)
         fm.add("plan", map: [], as: .text)
         let body = "## Log\n| date | habit | minutes | note |\n|---|---|---|---|\n"
-        return HabitWeek(document: MarkdownDocument(frontMatter: fm.frontMatter, body: body))!
+        return HabitWeek(unsaved: MarkdownDocument(frontMatter: fm.frontMatter, body: body))
     }
 
     public var week: ISOWeek { frontMatter.string("week").flatMap { ISOWeek($0) }! }

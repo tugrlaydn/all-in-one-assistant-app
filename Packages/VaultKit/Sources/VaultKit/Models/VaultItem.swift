@@ -17,6 +17,9 @@ public protocol VaultItem: Sendable, Equatable {
     static var kind: ItemKind { get }
     /// The file's text, including every edit made through the model.
     var document: MarkdownDocument { get }
+    /// The document as it was read from disk; nil for an item made with `new` and not yet saved.
+    /// A save refuses to overwrite a file that no longer matches it (someone else edited it).
+    var loadedDocument: MarkdownDocument? { get }
     /// Nil unless the document has the right `type:` and a valid ULID `id:`.
     init?(document: MarkdownDocument)
     var title: String { get }
@@ -25,6 +28,15 @@ public protocol VaultItem: Sendable, Equatable {
 /// Internal write access for the models' shared helpers.
 protocol DocumentBacked {
     var document: MarkdownDocument { get set }
+    var loadedDocument: MarkdownDocument? { get set }
+}
+
+extension VaultItem where Self: DocumentBacked {
+    /// A new item that exists only in memory until the Vault saves it.
+    init(unsaved document: MarkdownDocument) {
+        self.init(document: document)!
+        loadedDocument = nil
+    }
 }
 
 extension VaultItem {

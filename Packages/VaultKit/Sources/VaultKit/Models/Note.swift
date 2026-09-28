@@ -5,10 +5,12 @@ import Foundation
 public struct Note: VaultItem, DocumentBacked {
     public static let kind = ItemKind.note
     public internal(set) var document: MarkdownDocument
+    public internal(set) var loadedDocument: MarkdownDocument?
 
     public init?(document: MarkdownDocument) {
         guard Self.validates(document) else { return nil }
         self.document = document
+        loadedDocument = document
     }
 
     public static func new(
@@ -25,7 +27,7 @@ public struct Note: VaultItem, DocumentBacked {
         fm.add("created", created.description)
         fm.add("updated", created.description)
         fm.add("tags", list: tags)
-        return Note(document: MarkdownDocument(frontMatter: fm.frontMatter, body: body))!
+        return Note(unsaved: MarkdownDocument(frontMatter: fm.frontMatter, body: body))
     }
 
     public var title: String {

@@ -9,10 +9,12 @@ public enum TaskStatus: String, Sendable, CaseIterable {
 public struct TaskItem: VaultItem, DocumentBacked {
     public static let kind = ItemKind.task
     public internal(set) var document: MarkdownDocument
+    public internal(set) var loadedDocument: MarkdownDocument?
 
     public init?(document: MarkdownDocument) {
         guard Self.validates(document) else { return nil }
         self.document = document
+        loadedDocument = document
     }
 
     public static func new(
@@ -40,7 +42,7 @@ public struct TaskItem: VaultItem, DocumentBacked {
         fm.add("estimate", estimate?.description)
         fm.add("tags", list: tags)
         fm.add("parent", parent?.description, as: .text)
-        return TaskItem(document: MarkdownDocument(frontMatter: fm.frontMatter, body: body))!
+        return TaskItem(unsaved: MarkdownDocument(frontMatter: fm.frontMatter, body: body))
     }
 
     // MARK: Fields

@@ -29,3 +29,4 @@ New Tier A proposal: `/propose <title>` creates the next `A##-<slug>.md`. Tier B
 | A17 | [Agent guardrails — settings.json deny rules, PreToolUse path guard, acceptEdits inside the repo](A17-agent-guardrails.md) | A | proposed |
 | A18 | [Three project subagents (reviewer, vault-tester, renderer) with tool and path limits](A18-project-subagents.md) | A | proposed |
 | B01 | [Debug build separation: own bundle id, launch-time check, caches-only sandbox exception](B01-debug-build-separation.md) | B | decided |
+| B02 | [Coordinated file I/O with a direct fallback where coordination does not exist](B02-coordinated-io-linux-fallback.md) | B | decided |
