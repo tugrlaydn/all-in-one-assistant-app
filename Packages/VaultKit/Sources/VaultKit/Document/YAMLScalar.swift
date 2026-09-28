@@ -167,6 +167,11 @@ enum YAMLScalar {
         if reservedWords.contains(lower) { return true }
         if [".inf", "-.inf", "+.inf", ".nan"].contains(lower) { return true }
         if Double(value) != nil || lower.hasPrefix("0x") || lower.hasPrefix("0o") { return true }
+        // YAML 1.1 reads `20:00` as the base-60 number 1200.
+        let parts = value.split(separator: ":", omittingEmptySubsequences: false)
+        if parts.count > 1, parts.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isASCII) && $0.allSatisfy(\.isNumber) }) {
+            return true
+        }
         // Dates and timestamps: 2026-09-28, 2026-09-28T09:12:00+03:00
         let digits = Array(value.utf8.prefix(10))
         if digits.count == 10, digits[4] == UInt8(ascii: "-"), digits[7] == UInt8(ascii: "-"),

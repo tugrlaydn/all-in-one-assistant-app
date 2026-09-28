@@ -1,0 +1,2 @@
+# Test fixtures are golden bytes: never normalise their line endings.
+Packages/VaultKit/Tests/Fixtures/** -text

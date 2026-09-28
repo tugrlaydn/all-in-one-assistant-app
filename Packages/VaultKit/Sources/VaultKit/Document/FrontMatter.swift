@@ -367,11 +367,14 @@ struct KeyLine {
             leading = trailing.isEmpty ? "" : keptSpace
         } else {
             if leading.isEmpty { leading = " " }
-            if value.isEmpty, !trailing.isEmpty {
-                // `done_at:        # comment` → `done_at: 2026-…  # comment`: eat into the padding.
-                let padding = trailing.prefix { $0 == " " }
-                let eat = min(padding.count - 1, newValue.count + 1)
-                if eat > 0 { trailing = String(trailing.dropFirst(eat)) }
+            let padding = trailing.prefix { $0 == " " }.count
+            if trailing.dropFirst(padding).hasPrefix("#") {
+                // Keep the comment's column while the padding allows, never closer than one space:
+                // `done_at:        # c` → `done_at: 2026-…  # c`, `physical   # c` → `mindset    # c`.
+                let oldWidth = value.isEmpty ? 0 : leading.count + value.count
+                let newWidth = leading.count + newValue.count
+                let newPadding = max(1, padding + oldWidth - newWidth)
+                trailing = String(repeating: " ", count: newPadding) + trailing.dropFirst(padding)
             }
             value = Substring(newValue)
         }
