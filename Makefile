@@ -24,7 +24,9 @@ test-packages:
 	@for pkg in $(PACKAGES); do echo "== swift test $$pkg"; (cd $$pkg && swift test) || exit 1; done
 
 test-app: gen
-	$(XCODEBUILD) test
+	@rm -rf build/AppTests.xcresult
+	$(XCODEBUILD) -resultBundlePath build/AppTests.xcresult test
+	@xcrun xcresulttool get test-results summary --path build/AppTests.xcresult --compact | head -c 2000; echo
 
 ## run: launch the debug app; `make run VAULT=<path>` opens a test vault (§8.6)
 run: build
