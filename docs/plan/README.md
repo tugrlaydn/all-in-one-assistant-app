@@ -64,8 +64,8 @@ Each phase file has a goal, packages (tick as done), an acceptance test, and —
 
 | Phase | Goal | Milestone | Status |
 |---|---|---|---|
-| [P0](phases/P0.md) | Bootstrap (1 session) |  | not started |
-| [P1](phases/P1.md) | VaultKit core (2 sessions) |  | not started |
+| [P0](phases/P0.md) | Bootstrap (1 session) |  | code done; owner checks on a Mac pending |
+| [P1](phases/P1.md) | VaultKit core (2 sessions) |  | done (on proposed A05–A07, A15, A16) |
 | [P2](phases/P2.md) | App shell + Horizon, read-only (2 sessions) | see my vault on the calendar | not started |
 | [P3](phases/P3.md) | Quick Input everywhere (2 sessions) | daily use starts here | not started |
 | [P4](phases/P4.md) | Tasks (2 sessions) |  | not started |
