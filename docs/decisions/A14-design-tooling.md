@@ -2,10 +2,10 @@
 id: A14
 title: "Design tooling — Figma for screens, SwiftUI for motion, Blender for rendered assets"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A14 — Design tooling — Figma for screens, SwiftUI for motion, Blender for rendered assets

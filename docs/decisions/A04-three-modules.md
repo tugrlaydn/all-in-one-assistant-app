@@ -2,10 +2,10 @@
 id: A04
 title: "Three modules"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A04 — Three modules

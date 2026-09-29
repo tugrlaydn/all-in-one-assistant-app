@@ -15,7 +15,7 @@
   .persona/             app cache (index.json) — never truth, safe to delete
 ```
 
-Rules: file name = `<Title slug>.md`; collisions get `-2`, `-3`. `id` is a ULID and never changes; renaming the title renames the file. Timestamps are ISO 8601 with offset; days are `YYYY-MM-DD`; weeks are ISO weeks (`2026-W40`, Monday start).
+Rules: file name = `<Title slug>.md`; collisions get `-2`, `-3`. `id` is a ULID and never changes; renaming the title renames the file. The slug keeps the title as written (spaces, case, any letters); only `/ \ : * ? " < > | # ^ [ ]` and control characters become `-`, leading dots and extra spaces are dropped, names are cut at 200 bytes, and an empty title becomes `Untitled`. Collisions are checked ignoring case and Unicode normalisation (like APFS). A file is renamed only when its title changes, so a file the owner renamed keeps its name. Timestamps are ISO 8601 with offset; days are `YYYY-MM-DD`; weeks are ISO weeks (`2026-W40`, Monday start).
 
 ### 4.2 Note — `Notes/<title>.md`
 
@@ -126,3 +126,4 @@ Argued in `docs/decisions/A15-vault-format-shape.md` (Tier A, proposed).
 | date | file type | change | decision |
 |---|---|---|---|
 | 2026-09-28 | all | format v1 as above | A07, A15 |
+| 2026-09-29 | all | file-name slug rules spelled out (no key change) | A15 |

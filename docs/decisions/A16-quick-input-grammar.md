@@ -2,10 +2,10 @@
 id: A16
 title: "Quick Input grammar — prefix letters, symbol tokens, never eat unknown text"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A16 — Why the Quick Input grammar looks like this

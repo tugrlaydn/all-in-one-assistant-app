@@ -2,10 +2,10 @@
 id: A17
 title: "Agent guardrails — settings.json deny rules, PreToolUse path guard, acceptEdits inside the repo"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A17 — Agent guardrails

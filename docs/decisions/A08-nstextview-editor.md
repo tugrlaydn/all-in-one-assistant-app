@@ -2,10 +2,10 @@
 id: A08
 title: "NSTextView editor; no WYSIWYG"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A08 — NSTextView editor; no WYSIWYG

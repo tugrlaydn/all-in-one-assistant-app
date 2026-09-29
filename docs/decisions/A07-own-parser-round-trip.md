@@ -2,10 +2,10 @@
 id: A07
 title: "Our own front-matter parser with byte-identical round-trip"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A07 — Our own front-matter parser with byte-identical round-trip

@@ -2,10 +2,10 @@
 id: A13
 title: "Developer ID + notarised dmg; not the App Store"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A13 — Developer ID + notarised dmg; not the App Store

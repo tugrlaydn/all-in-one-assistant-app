@@ -2,10 +2,10 @@
 id: A18
 title: "Three project subagents (reviewer, vault-tester, renderer) with tool and path limits"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A18 — Three project subagents

@@ -2,10 +2,10 @@
 id: A09
 title: "Carbon `RegisterEventHotKey` for the global shortcut"
 tier: B
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A09 — Carbon `RegisterEventHotKey` for the global shortcut

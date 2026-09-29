@@ -2,10 +2,10 @@
 id: A05
 title: "The vault is a user-chosen folder in iCloud Drive; no CloudKit"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A05 — The vault is a user-chosen folder in iCloud Drive; no CloudKit

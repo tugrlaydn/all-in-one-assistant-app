@@ -2,10 +2,10 @@
 id: A01
 title: "Swift 6 + SwiftUI, with AppKit where SwiftUI falls short"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A01 — Swift 6 + SwiftUI, with AppKit where SwiftUI falls short

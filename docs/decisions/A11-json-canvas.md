@@ -2,10 +2,10 @@
 id: A11
 title: "JSON Canvas 1.0 for the Vault view"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A11 — JSON Canvas 1.0 for the Vault view

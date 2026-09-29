@@ -2,10 +2,10 @@
 id: A15
 title: "Vault format shape — one file per item, subtasks inline, week files, budgets in the vault"
 tier: A
-status: proposed
+status: ratified
 proposed: 2026-09-28
-ratified:
-owner_note:
+ratified: 2026-09-29
+owner_note: "ratified in chat: \"ratify all\""
 ---
 
 # A15 — Why the vault format has this shape
